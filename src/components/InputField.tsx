@@ -4,16 +4,18 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  Image,
+  ImageSourcePropType,
   StyleSheet,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { spacing, radius } from '../theme/spacing';
 import { typography } from '../theme/typography';
-import { verticalScale } from 'react-native-size-matters';
+import { moderateScale, verticalScale } from 'react-native-size-matters';
 
 type InputFieldProps = TextInputProps & {
   label: string;
-  leftIcon?: string;
+  leftIcon?: ImageSourcePropType;
   rightAccessory?: React.ReactNode;
 };
 
@@ -27,12 +29,14 @@ const InputField = ({
     <View style={styles.group}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrapper}>
-        {leftIcon ? <Text style={styles.leftIcon}>{leftIcon}</Text> : null}
+        {leftIcon ? (
+          <Image source={leftIcon} style={styles.leftIcon} resizeMode="contain" />
+        ) : null}
         <TextInput
           style={[
             styles.input,
-            { paddingLeft: leftIcon ? 44 : spacing.md },
-            { paddingRight: rightAccessory ? 44 : spacing.md },
+            { paddingLeft: leftIcon ? moderateScale(44) : spacing.md },
+            { paddingRight: rightAccessory ? moderateScale(44) : spacing.md },
           ]}
           placeholderTextColor={colors.secondaryFixedDim}
           {...textInputProps}
@@ -71,7 +75,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.md,
     zIndex: 1,
-    fontSize: 18,
+    width: moderateScale(20),
+    height: moderateScale(20),
   },
   rightAccessory: {
     position: 'absolute',

@@ -17,6 +17,7 @@ import { spacing, radius } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { verticalScale } from 'react-native-size-matters';
 import { scale } from 'react-native-size-matters';
+const personIcon = require('../assets/icons/person.png');
 
 const LoginScreen = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -49,7 +50,7 @@ const LoginScreen = () => {
           <View>
             <InputField
               label="Employee ID"
-              leftIcon="👤"
+              leftIcon={personIcon}
               placeholder="Enter Employee ID"
               value={employeeId}
               onChangeText={setEmployeeId}
