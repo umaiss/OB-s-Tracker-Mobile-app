@@ -16,9 +16,13 @@
     "@react-navigation/native-stack": "^7.18.6",
     "react": "19.2.3",
     "react-native": "0.86.0",
+<<<<<<< HEAD
     "react-native-bootsplash": "^7.3.2",
     "react-native-circular-progress": "^1.4.1",
     "react-native-progress": "^5.0.1",
+=======
+    "react-native-keychain": "^10.0.0",
+>>>>>>> aa00fd6b9e7d72ac4c28b6d1e28b6262640981df
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.26.2",
     "react-native-size-matters": "^0.4.2",

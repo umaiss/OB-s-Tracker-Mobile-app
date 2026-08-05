@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import BootSplash from 'react-native-bootsplash';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
 function App(): React.JSX.Element {
@@ -10,7 +12,9 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaProvider>
-      <RootNavigator />
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
