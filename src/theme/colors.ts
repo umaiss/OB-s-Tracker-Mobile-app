@@ -2,7 +2,8 @@ export const colors = {
   primary: '#af101a',
   primaryContainer: '#d32f2f',
   onPrimary: '#ffffff',
-
+  error: '#ba1a1a',
+  
   surface: '#fbf9f8',
   surfaceContainerLowest: '#ffffff',
   surfaceContainerLow: '#f5f3f3',

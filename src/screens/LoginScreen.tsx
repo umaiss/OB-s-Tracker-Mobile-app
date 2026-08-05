@@ -16,28 +16,28 @@ import { spacing, radius } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { verticalScale } from 'react-native-size-matters';
 import { scale } from 'react-native-size-matters';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../context/AuthContext';
 
 const LoginScreen = () => {
     const personIcon = require('../assets/icons/person.png');
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [employeeId, setEmployeeId] = useState('');
+    const { login } = useAuth();
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleLogin = () => {
-    setLoading(true);
-
-    // Mock API call — replace with real request later
-    setTimeout(() => {
+    const handleLogin = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        await login(email, password);
+      } catch (err) {
+        setError('Invalid Email or password.');
+      } finally {
         setLoading(false);
-        console.log('Logging in with:', { employeeId, password, rememberMe });
-        navigation.replace('Main');
-    }, 2000);
+      }
     };
 
   return (
@@ -54,12 +54,13 @@ const LoginScreen = () => {
           {/* Form Section */}
           <View>
             <InputField
-              label="Employee ID"
+              label="Email"
               leftIcon={personIcon}
-              placeholder="Enter Employee ID"
-              value={employeeId}
-              onChangeText={setEmployeeId}
+              placeholder="Enter Email"
+              value={email}
+              onChangeText={setEmail}
               autoCapitalize="none"
+              keyboardType="email-address"
             />
 
             <PasswordInput value={password} onChangeText={setPassword} />
@@ -75,6 +76,7 @@ const LoginScreen = () => {
               onPress={handleLogin}
               loading={loading}
             />
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </View>
 
           {/* Footer */}
@@ -143,6 +145,12 @@ const styles = StyleSheet.create({
     ...typography.versionText,
     color: colors.secondary,
     opacity: 0.7,
+  },
+  errorText: {
+    ...typography.bodySm,
+    color: colors.error ?? '#ba1a1a',
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
 });
 
