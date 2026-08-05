@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import DplLogo from '../assets/images/dpl-logo.png';
+const DplLogo = require('../assets/images/dpl-logo.png');
 import {
-  SafeAreaView,
   ScrollView,
   View,
   Text,
@@ -17,23 +16,29 @@ import { spacing, radius } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { verticalScale } from 'react-native-size-matters';
 import { scale } from 'react-native-size-matters';
-const personIcon = require('../assets/icons/person.png');
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const LoginScreen = () => {
-  const [employeeId, setEmployeeId] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
+    const personIcon = require('../assets/icons/person.png');
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const [employeeId, setEmployeeId] = useState('');
+    const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+    const handleLogin = () => {
     setLoading(true);
 
     // Mock API call — replace with real request later
     setTimeout(() => {
-      setLoading(false);
-      console.log('Logging in with:', { employeeId, password, rememberMe });
+        setLoading(false);
+        console.log('Logging in with:', { employeeId, password, rememberMe });
+        navigation.replace('Main');
     }, 2000);
-  };
+    };
 
   return (
     <SafeAreaView style={styles.safeArea}>

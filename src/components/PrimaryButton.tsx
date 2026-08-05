@@ -2,31 +2,41 @@ import React from 'react';
 import {
   TouchableOpacity,
   Text,
-  ActivityIndicator,
+  View,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
-import { colors } from '../theme/colors';
-import { spacing, radius } from '../theme/spacing';
-import { verticalScale } from 'react-native-size-matters';
 
-type PrimaryButtonProps = {
+interface PrimaryButtonProps {
   label: string;
   onPress: () => void;
   loading?: boolean;
-};
+  disabled?: boolean;
+}
 
-const PrimaryButton = ({ label, onPress, loading }: PrimaryButtonProps) => {
+const PrimaryButton: React.FC<PrimaryButtonProps> = ({
+  label,
+  onPress,
+  loading = false,
+  disabled = false,
+}) => {
   return (
     <TouchableOpacity
-      style={styles.button}
+      style={[
+        styles.button,
+        (loading || disabled) && styles.buttonDisabled,
+      ]}
       onPress={onPress}
-      disabled={loading}
+      disabled={loading || disabled}
       activeOpacity={0.85}
     >
       {loading ? (
-        <ActivityIndicator color={colors.onPrimary} />
+        <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <>
+          <View style={styles.icon} />
+          <Text style={styles.label}>{label}</Text>
+        </>
       )}
     </TouchableOpacity>
   );
@@ -34,18 +44,37 @@ const PrimaryButton = ({ label, onPress, loading }: PrimaryButtonProps) => {
 
 const styles = StyleSheet.create({
   button: {
-    height: verticalScale(56),
-    backgroundColor: colors.primary,
-    borderRadius: radius.xl,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.lg,
+    backgroundColor: '#B91C3C',
+    borderRadius: 14,
+    paddingVertical: 16,
+    shadowColor: '#B91C3C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
+
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+
+  icon: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    marginRight: 10,
+  },
+
   label: {
-    color: colors.onPrimary,
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1.5,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });
 
