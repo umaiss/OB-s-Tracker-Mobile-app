@@ -5,6 +5,7 @@ import { MainTabParamList } from './types';
 import { colors } from '../theme/colors';
 import { moderateScale } from 'react-native-size-matters';
 import HomeScreen from '../screens/HomeScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const homeIcon = require('../assets/icons/home.png');
 const historyIcon = require('../assets/icons/history.png');
@@ -14,7 +15,6 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // Temporary placeholder screens until History/Profile are built
 const HistoryScreen = () => <Text>History Screen — coming soon</Text>;
-const ProfileScreen = () => <Text>Profile Screen — coming soon</Text>;
 
 const MainTabNavigator = () => {
   return (
