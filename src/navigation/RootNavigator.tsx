@@ -1,20 +1,20 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {View, Text} from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import LoginScreen from '../screens/LoginScreen';
 import MainTabNavigator from './MainTabNavigator';
 import ActiveTaskScreen from '../screens/ActiveTaskScreen';
 import TaskCompletedScreen from '../screens/TaskCompletedScreen';
 
-import { RootStackParamList } from './types';
-import { useAuth } from '../context/AuthContext';
+import {RootStackParamList} from './types';
+import {useAuth} from '../context/AuthContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const {user, isLoading} = useAuth();
 
   if (isLoading) {
     return (
@@ -23,8 +23,7 @@ const RootNavigator: React.FC = () => {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-        }}
-      >
+        }}>
         <Text>Loading...</Text>
       </View>
     );
@@ -34,11 +33,12 @@ const RootNavigator: React.FC = () => {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
+          // IMPORTANT:
+          // We use custom headers inside our screens.
           headerShown: false,
         }}
-        // IMPORTANT: Set initial route name based on auth state
-        initialRouteName={!user ? "Login" : "Main"}
-      >
+        initialRouteName={user ? 'Main' : 'Login'}>
+
         {!user ? (
           <Stack.Screen
             name="Login"
@@ -56,9 +56,7 @@ const RootNavigator: React.FC = () => {
               component={ActiveTaskScreen}
               options={{
                 gestureEnabled: false,
-                // If you want a header for this screen
-                headerShown: true,
-                title: 'Active Task',
+                headerShown: false,
               }}
             />
 
@@ -67,8 +65,7 @@ const RootNavigator: React.FC = () => {
               component={TaskCompletedScreen}
               options={{
                 gestureEnabled: false,
-                headerShown: true,
-                title: 'Task Completed',
+                headerShown: false,
               }}
             />
           </>

@@ -29,35 +29,87 @@ const TaskCompletedScreen: React.FC = () => {
 
   const received = Number(amountReceived) || 0;
   const returned = Number(amountReturned) || 0;
+
   const netAmount = Math.max(received - returned, 0);
 
+  /*
+   * Go to Home screen.
+   *
+   * Main is the bottom-tab navigator, so navigating to Main
+   * takes the user back to the Home tab.
+   */
+  const goToHome = () => {
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'Main',
+        },
+      ],
+    });
+  };
+
+  /*
+   * RECEIPT
+   *
+   * This keeps your current UI behavior.
+   * Replace this function later with the actual
+   * image picker / receipt upload API.
+   */
   const handleReceiptUpload = () => {
     setReceiptName('receipt.jpg');
   };
 
+  /*
+   * SUBMIT TASK
+   *
+   * Shows confirmation first.
+   * YES -> Home
+   * NO -> stays on this screen
+   */
   const handleSubmit = () => {
     if (submitting) {
       return;
     }
 
-    setSubmitting(true);
+    Alert.alert(
+      'Submit Task',
+      'Are you sure you want to submit this task?',
+      [
+        {
+          text: 'No',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          onPress: () => {
+            setSubmitting(true);
 
-    setTimeout(() => {
-      setSubmitting(false);
-
-      Alert.alert(
-        'Task Completed',
-        'Task details have been submitted successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Main' as never),
+            /*
+             * Here you can later call your backend API.
+             *
+             * For now, after successful submission,
+             * return to Home.
+             */
+            setTimeout(() => {
+              setSubmitting(false);
+              goToHome();
+            }, 300);
           },
-        ],
-      );
-    }, 500);
+        },
+      ],
+      {
+        cancelable: true,
+      },
+    );
   };
 
+  /*
+   * CANCEL TASK
+   *
+   * YES -> Home
+   * NO -> stays on this screen
+   */
   const handleCancelTask = () => {
     Alert.alert(
       'Cancel Task',
@@ -70,19 +122,24 @@ const TaskCompletedScreen: React.FC = () => {
         {
           text: 'Yes, Cancel',
           style: 'destructive',
-          onPress: () => navigation.goBack(),
+          onPress: () => {
+            goToHome();
+          },
         },
       ],
+      {
+        cancelable: true,
+      },
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
+          activeOpacity={0.7}
           onPress={() => navigation.goBack()}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
@@ -94,7 +151,6 @@ const TaskCompletedScreen: React.FC = () => {
 
       {/* MAIN CONTENT */}
       <View style={styles.content}>
-
         {/* COMPLETED HEADER */}
         <View style={styles.completedHeader}>
           <View style={styles.checkCircle}>
@@ -114,14 +170,12 @@ const TaskCompletedScreen: React.FC = () => {
 
         {/* MAIN FORM CARD */}
         <View style={styles.formCard}>
-
           <Text style={styles.formTitle}>
             COMPLETION DETAILS
           </Text>
 
           {/* STATUS + DISTANCE */}
           <View style={styles.row}>
-
             <View style={styles.field}>
               <Text style={styles.label}>
                 Status
@@ -147,12 +201,10 @@ const TaskCompletedScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-
           </View>
 
           {/* DURATION + AMOUNT RECEIVED */}
           <View style={styles.row}>
-
             <View style={styles.field}>
               <Text style={styles.label}>
                 Duration
@@ -179,12 +231,10 @@ const TaskCompletedScreen: React.FC = () => {
                 keyboardType="decimal-pad"
               />
             </View>
-
           </View>
 
           {/* AMOUNT RETURNED + NET AMOUNT */}
           <View style={styles.row}>
-
             <View style={styles.field}>
               <Text style={styles.label}>
                 Amount Returned
@@ -211,12 +261,10 @@ const TaskCompletedScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-
           </View>
 
           {/* VENDOR DETAILS */}
           <View style={styles.fullField}>
-
             <Text style={styles.label}>
               Vendor Details
             </Text>
@@ -229,12 +277,10 @@ const TaskCompletedScreen: React.FC = () => {
               placeholderTextColor="#A0A0A0"
               multiline={false}
             />
-
           </View>
 
           {/* RECEIPT */}
           <View style={styles.receiptSection}>
-
             <View style={styles.receiptInfo}>
               <Text style={styles.label}>
                 Receipt
@@ -255,7 +301,6 @@ const TaskCompletedScreen: React.FC = () => {
               style={styles.uploadButton}
               activeOpacity={0.8}
               onPress={handleReceiptUpload}>
-
               <Text style={styles.uploadIcon}>
                 ↑
               </Text>
@@ -263,43 +308,37 @@ const TaskCompletedScreen: React.FC = () => {
               <Text style={styles.uploadText}>
                 {receiptName ? 'CHANGE' : 'UPLOAD'}
               </Text>
-
             </TouchableOpacity>
-
           </View>
-
         </View>
 
         {/* BUTTONS */}
         <View style={styles.buttonsContainer}>
-
+          {/* SUBMIT TASK */}
           <TouchableOpacity
-            style={styles.submitButton}
+            style={[
+              styles.submitButton,
+              submitting && styles.submitButtonDisabled,
+            ]}
             activeOpacity={0.8}
             onPress={handleSubmit}
             disabled={submitting}>
-
             <Text style={styles.submitText}>
-              {submitting
-                ? 'SUBMITTING...'
-                : 'SUBMIT TASK'}
+              {submitting ? 'SUBMITTING...' : 'SUBMIT TASK'}
             </Text>
-
           </TouchableOpacity>
 
+          {/* CANCEL TASK */}
           <TouchableOpacity
             style={styles.cancelButton}
             activeOpacity={0.8}
-            onPress={handleCancelTask}>
-
+            onPress={handleCancelTask}
+            disabled={submitting}>
             <Text style={styles.cancelText}>
               CANCEL TASK
             </Text>
-
           </TouchableOpacity>
-
         </View>
-
       </View>
     </SafeAreaView>
   );
@@ -348,13 +387,15 @@ const styles = StyleSheet.create({
     width: 42,
   },
 
-  /* COMPLETED HEADER */
+  /* CONTENT */
 
   content: {
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 12,
   },
+
+  /* COMPLETED HEADER */
 
   completedHeader: {
     height: 66,
@@ -610,6 +651,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 4,
+  },
+
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
 
   submitText: {
