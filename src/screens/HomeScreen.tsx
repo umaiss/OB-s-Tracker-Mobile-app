@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import KpiCard from '../components/KpiCard';
-import TaskCard from '../components/TaskCard';
 import CheckboxRow from '../components/CheckboxRow';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
@@ -29,13 +28,10 @@ const walkIcon = require('../assets/icons/walk.png');
 const scheduleIcon = require('../assets/icons/schedule.png');
 const micIcon = require('../assets/icons/mic.png');
 const infoIcon = require('../assets/icons/info.png');
-const mailIcon = require('../assets/icons/mail.png');
-const coffeeIcon = require('../assets/icons/coffee.png');
-const inventoryIcon = require('../assets/icons/inventory.png');
 
 const EMPLOYEE_OPTIONS = ['Ahmed Khan', 'Ali Hassan', 'Zubair Ahmed', 'Fatima Noor'];
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<
+type HomeScreenNavigationProp = NativeStackNavigationProp
   RootStackParamList,
   'Main'
 >;
@@ -49,7 +45,7 @@ const HomeScreen: React.FC = () => {
 
   const handleStartTask = (): void => {
     console.log('🔵 Start Task button pressed');
-    
+
     if (!taskText.trim()) {
       Alert.alert('Task Required', 'Please describe your task before starting.');
       return;
@@ -62,7 +58,7 @@ const HomeScreen: React.FC = () => {
 
     console.log('🟢 All validations passed');
     setIsStartingTask(true);
-    
+
     setTimeout(() => {
       console.log('🟡 Navigating to ActiveTask...');
       setIsStartingTask(false);
@@ -78,7 +74,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -156,42 +152,11 @@ const HomeScreen: React.FC = () => {
           </View>
 
           {/* Start Task Button */}
-          <PrimaryButton 
-            label={isStartingTask ? "STARTING..." : "▶  START TASK"} 
+          <PrimaryButton
+            label={isStartingTask ? "STARTING..." : "▶  START TASK"}
             onPress={handleStartTask}
             disabled={isStartingTask}
           />
-
-          {/* Recent Tasks */}
-          <View style={styles.recentTasksSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Tasks</Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.viewAll}>VIEW ALL</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.taskList}>
-              <TaskCard
-                icon={mailIcon}
-                title="Courier Delivery"
-                timeRange="10:12 AM - 10:47 AM (35 min)"
-                status="Completed"
-              />
-              <TaskCard
-                icon={coffeeIcon}
-                title="Cafeteria Service"
-                timeRange="09:30 AM - 09:45 AM (15 min)"
-                status="Completed"
-              />
-              <TaskCard
-                icon={inventoryIcon}
-                title="Stationery Pickup"
-                timeRange="08:15 AM - 09:00 AM (45 min)"
-                status="Completed"
-              />
-            </View>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -343,26 +308,6 @@ const styles = StyleSheet.create({
   optionText: {
     ...typography.bodyLg,
     color: colors.onSurface || '#1A1A1A',
-  },
-  recentTasksSection: {
-    marginTop: spacing.sm || 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm || 8,
-  },
-  sectionTitle: {
-    ...typography.headlineMd,
-    color: colors.onSurface || '#1A1A1A',
-  },
-  viewAll: {
-    ...typography.labelCaps,
-    color: colors.primary || '#1976D2',
-  },
-  taskList: {
-    gap: spacing.xs || 4,
   },
 });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+<<<<<<< HEAD
 import { Image, Text } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
 
@@ -8,6 +9,16 @@ import ProfileScreen from '../screens/ProfileScreen';
 
 import { MainTabParamList } from './types';
 import { colors } from '../theme/colors';
+=======
+import { Image } from 'react-native';
+
+import HomeScreen from '../screens/HomeScreen';
+import HistoryScreen from '../screens/HistoryScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import { MainTabParamList } from './types';
+import { colors } from '../theme/colors';
+import { moderateScale } from 'react-native-size-matters';
+>>>>>>> origin/main
 
 const homeIcon = require('../assets/icons/home.png');
 const historyIcon = require('../assets/icons/history.png');
@@ -15,9 +26,12 @@ const personIcon = require('../assets/icons/person.png');
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+<<<<<<< HEAD
 // Temporary placeholder until HistoryScreen is implemented
 const HistoryScreen = () => <Text>History Screen — coming soon</Text>;
 
+=======
+>>>>>>> origin/main
 const MainTabNavigator = () => {
   return (
     <Tab.Navigator
