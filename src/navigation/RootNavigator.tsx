@@ -36,6 +36,8 @@ const RootNavigator: React.FC = () => {
         screenOptions={{
           headerShown: false,
         }}
+        // IMPORTANT: Set initial route name based on auth state
+        initialRouteName={!user ? "Login" : "Main"}
       >
         {!user ? (
           <Stack.Screen
@@ -54,6 +56,9 @@ const RootNavigator: React.FC = () => {
               component={ActiveTaskScreen}
               options={{
                 gestureEnabled: false,
+                // If you want a header for this screen
+                headerShown: true,
+                title: 'Active Task',
               }}
             />
 
@@ -62,6 +67,8 @@ const RootNavigator: React.FC = () => {
               component={TaskCompletedScreen}
               options={{
                 gestureEnabled: false,
+                headerShown: true,
+                title: 'Task Completed',
               }}
             />
           </>
