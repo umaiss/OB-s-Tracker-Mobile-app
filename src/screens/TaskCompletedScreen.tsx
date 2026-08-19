@@ -1,6 +1,5 @@
 import React, {useState} from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -8,8 +7,12 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+
+import {useTask} from '../context/TaskContext';
+import {updateSettlement, submitTask} from '../api/tasksApi';
 
 import {RootStackParamList} from '../navigation/types';
 
@@ -18,8 +21,14 @@ type TaskCompletedNavigationProp = NativeStackNavigationProp<
   'TaskCompleted'
 >;
 
+type TaskCompletedRouteProp = RouteProp<RootStackParamList, 'TaskCompleted'>;
+
 const TaskCompletedScreen: React.FC = () => {
   const navigation = useNavigation<TaskCompletedNavigationProp>();
+  const route = useRoute<TaskCompletedRouteProp>();
+  const {clearActiveTask} = useTask();
+
+  const {taskId, taskTitle, duration, distance} = route.params;
 
   const [amountReceived, setAmountReceived] = useState('');
   const [amountReturned, setAmountReturned] = useState('');
@@ -52,20 +61,24 @@ const TaskCompletedScreen: React.FC = () => {
   /*
    * RECEIPT
    *
-   * This keeps your current UI behavior.
-   * Replace this function later with the actual
-   * image picker / receipt upload API.
+   * Real upload needs an image/file picker library (e.g.
+   * react-native-image-picker), which isn't installed yet — so this is
+   * intentionally left as a clear "not available" state rather than
+   * faking a successful upload. Ask if you want this wired up next.
    */
   const handleReceiptUpload = () => {
-    setReceiptName('receipt.jpg');
+    Alert.alert(
+      'Not Set Up Yet',
+      'Receipt upload needs an image picker library that isn\u2019t installed in the project yet. This button is a placeholder until that\u2019s added.',
+    );
   };
 
   /*
    * SUBMIT TASK
    *
-   * Shows confirmation first.
-   * YES -> Home
-   * NO -> stays on this screen
+   * Real flow: PATCH the settlement (money + vendor), then POST /submit.
+   * A receipt is optional per the API doc, so its absence never blocks
+   * submission.
    */
   const handleSubmit = () => {
     if (submitting) {
@@ -82,48 +95,28 @@ const TaskCompletedScreen: React.FC = () => {
         },
         {
           text: 'Yes',
-          onPress: () => {
+          onPress: async () => {
             setSubmitting(true);
 
-            /*
-             * Here you can later call your backend API.
-             *
-             * For now, after successful submission,
-             * return to Home.
-             */
-            setTimeout(() => {
-              setSubmitting(false);
-              goToHome();
-            }, 300);
-          },
-        },
-      ],
-      {
-        cancelable: true,
-      },
-    );
-  };
+            try {
+              await updateSettlement(taskId, {
+                amountReceived: received,
+                amountReturned: returned,
+                vendorDetails: vendorDetails.trim() || undefined,
+              });
 
-  /*
-   * CANCEL TASK
-   *
-   * YES -> Home
-   * NO -> stays on this screen
-   */
-  const handleCancelTask = () => {
-    Alert.alert(
-      'Cancel Task',
-      'Are you sure you want to cancel this task?',
-      [
-        {
-          text: 'No',
-          style: 'cancel',
-        },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: () => {
-            goToHome();
+              await submitTask(taskId);
+
+              clearActiveTask();
+              goToHome();
+            } catch (error: any) {
+              Alert.alert(
+                'Could Not Submit',
+                error?.message ?? 'Something went wrong. Please try again.',
+              );
+            } finally {
+              setSubmitting(false);
+            }
           },
         },
       ],
@@ -159,7 +152,7 @@ const TaskCompletedScreen: React.FC = () => {
 
           <View style={styles.completedInfo}>
             <Text style={styles.completedTitle}>
-              Task Completed
+              {taskTitle}
             </Text>
 
             <Text style={styles.completedSubtitle}>
@@ -197,7 +190,7 @@ const TaskCompletedScreen: React.FC = () => {
 
               <View style={styles.readOnlyField}>
                 <Text style={styles.readOnlyText}>
-                  523.58 m
+                  {distance}
                 </Text>
               </View>
             </View>
@@ -212,7 +205,7 @@ const TaskCompletedScreen: React.FC = () => {
 
               <View style={styles.readOnlyField}>
                 <Text style={styles.readOnlyText}>
-                  2 seconds
+                  {duration}
                 </Text>
               </View>
             </View>
@@ -327,17 +320,6 @@ const TaskCompletedScreen: React.FC = () => {
               {submitting ? 'SUBMITTING...' : 'SUBMIT TASK'}
             </Text>
           </TouchableOpacity>
-
-          {/* CANCEL TASK */}
-          <TouchableOpacity
-            style={styles.cancelButton}
-            activeOpacity={0.8}
-            onPress={handleCancelTask}
-            disabled={submitting}>
-            <Text style={styles.cancelText}>
-              CANCEL TASK
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -422,6 +404,7 @@ const styles = StyleSheet.create({
 
   completedInfo: {
     justifyContent: 'center',
+    flex: 1,
   },
 
   completedTitle: {
@@ -664,22 +647,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
 
-  cancelButton: {
-    height: 42,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: '#C7193F',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-
-  cancelText: {
-    color: '#C7193F',
-    fontSize: 12,
-    fontWeight: '800',
-  },
 });
 
 export default TaskCompletedScreen;

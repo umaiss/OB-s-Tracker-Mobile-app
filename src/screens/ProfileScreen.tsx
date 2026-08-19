@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ScrollView, View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import KpiCard from '../components/KpiCard';
 import SettingsRow from '../components/SettingsRow';
 import { colors } from '../theme/colors';
@@ -8,6 +9,7 @@ import { spacing, radius } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { moderateScale } from 'react-native-size-matters';
 import { useAuth } from '../context/AuthContext';
+import { getTaskStats, TaskStats } from '../api/tasksApi';
 
 const bellIcon = require('../assets/icons/bell.png');
 const avatarIcon = require('../assets/icons/avatar-placeholder.png');
@@ -20,9 +22,48 @@ const locationIcon = require('../assets/icons/person.png'); // placeholder if lo
 const infoIcon = require('../assets/icons/info.png');
 const logoutIcon = require('../assets/icons/logout.png');
 
+// Same formatting convention as HomeScreen's KPI row, kept local here since
+// it's just these two screens that need it.
+function formatKpiDistance(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters)} m`;
+}
+
+// Same duration formatting convention as HomeScreen's KPI row.
+function formatKpiDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
   const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
+  const [stats, setStats] = useState<TaskStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
+
+  // Refetch on every focus (not just mount) so numbers stay current after
+  // finishing/submitting a task elsewhere in the app — mirrors Home's pattern.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setStatsLoading(true);
+      getTaskStats()
+        .then(res => {
+          if (!cancelled) setStats(res);
+        })
+        .catch(err => {
+          console.warn('Failed to load task stats:', err.message);
+        })
+        .finally(() => {
+          if (!cancelled) setStatsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -61,9 +102,21 @@ const ProfileScreen = () => {
           <View>
             <Text style={styles.sectionLabel}>MY STATISTICS</Text>
             <View style={styles.statsRow}>
-              <KpiCard icon={taskIcon} label="Total Tasks" value="248" />
-              <KpiCard icon={walkIcon} label="Distance" value="623 km" />
-              <KpiCard icon={timerIcon} label="Avg. Time" value="24 min" />
+              <KpiCard
+                icon={taskIcon}
+                label="Total Tasks"
+                value={statsLoading ? '…' : String(stats?.tasks.total ?? 0)}
+              />
+              <KpiCard
+                icon={walkIcon}
+                label="Distance"
+                value={statsLoading ? '…' : formatKpiDistance(stats?.totalDistanceMeters ?? 0)}
+              />
+              <KpiCard
+                icon={timerIcon}
+                label="Total Time"
+                value={statsLoading ? '…' : formatKpiDuration(stats?.totalDurationSeconds ?? 0)}
+              />
             </View>
           </View>
 

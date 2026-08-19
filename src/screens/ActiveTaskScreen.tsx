@@ -7,9 +7,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {moderateScale} from 'react-native-size-matters';
+
+import {useTask} from '../context/TaskContext';
+import {useAuth} from '../context/AuthContext';
+import {getCurrentLocation} from '../location/locationTracker';
 
 import StatusBadge from '../components/StatusBadge';
 import CircularTimer from '../components/CircularTimer';
@@ -18,62 +23,99 @@ const homeIcon = require('../assets/icons/home.png');
 const historyIcon = require('../assets/icons/history.png');
 const personIcon = require('../assets/icons/person.png');
 
+function formatElapsed(startedAt: string): string {
+  const startMs = new Date(startedAt).getTime();
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+  const h = Math.floor(diffSeconds / 3600);
+  const m = Math.floor((diffSeconds % 3600) / 60);
+  const s = diffSeconds % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// No fixed "expected duration" exists for an errand, so the ring cycles
+// once per hour as a live visual pulse rather than representing % complete
+// toward some unknown target. Adjust this if you'd rather it just fill once.
+function computeProgress(startedAt: string): number {
+  const startMs = new Date(startedAt).getTime();
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+  return ((diffSeconds % 3600) / 3600) * 100;
+}
+
+function formatDurationShort(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function formatDistanceShort(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
+  return `${Math.round(meters)} m`;
+}
+
 const ActiveTaskScreen: React.FC = () => {
-  /*
-   * Using any here prevents TypeScript errors caused by
-   * mismatched RootStackParamList definitions.
-   *
-   * We can strongly type this later once your navigation/types.ts
-   * is confirmed.
-   */
   const navigation = useNavigation<any>();
+  const {activeTask, endActiveTask} = useTask();
+  const {user} = useAuth();
 
-  const [elapsedTime, setElapsedTime] = useState('00:02:54');
-  const [progress, setProgress] = useState(25);
+  const [elapsedTime, setElapsedTime] = useState('00:00:00');
+  const [progress, setProgress] = useState(0);
+  const [isStopping, setIsStopping] = useState(false);
+
+  // No active task in context — nothing to show here (e.g. app was
+  // reloaded mid-task, or this screen was reached without starting one).
+  useEffect(() => {
+    if (!activeTask || !activeTask.startedAt) {
+      navigation.navigate('Main', {screen: 'Home'});
+    }
+  }, [activeTask, navigation]);
 
   /*
-   * TIMER
+   * TIMER — derived from the real startedAt timestamp, not a local counter.
+   * This means the elapsed time stays correct even if you navigate away
+   * and back, since it's recalculated from the actual start time each tick
+   * rather than incremented from wherever it last was.
    */
   useEffect(() => {
+    if (!activeTask?.startedAt) return;
+
+    setElapsedTime(formatElapsed(activeTask.startedAt));
+    setProgress(computeProgress(activeTask.startedAt));
+
     const timer = setInterval(() => {
-      setElapsedTime(previousTime => {
-        const [hours, minutes, seconds] = previousTime
-          .split(':')
-          .map(Number);
-
-        let h = hours;
-        let m = minutes;
-        let s = seconds + 1;
-
-        if (s >= 60) {
-          s = 0;
-          m += 1;
-        }
-
-        if (m >= 60) {
-          m = 0;
-          h += 1;
-        }
-
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(
-          2,
-          '0',
-        )}:${String(s).padStart(2, '0')}`;
-      });
-
-      setProgress(previous => Math.min(previous + 0.1, 100));
+      setElapsedTime(formatElapsed(activeTask.startedAt as string));
+      setProgress(computeProgress(activeTask.startedAt as string));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [activeTask?.startedAt]);
 
-  /*
-   * STOP TASK
-   *
-   * This navigates to TaskCompleted.
-   */
-  const handleStopTask = () => {
-    navigation.replace('TaskCompleted');
+  const handleStopTask = async () => {
+    if (!activeTask) return;
+    setIsStopping(true);
+
+    try {
+      const {latitude, longitude} = await getCurrentLocation();
+      const ended = await endActiveTask(latitude, longitude);
+
+      navigation.replace('TaskCompleted', {
+        taskId: ended.id,
+        employeeName: user?.name ?? 'Office Boy',
+        taskTitle: ended.title,
+        duration: formatDurationShort(ended.durationSeconds ?? 0),
+        distance: formatDistanceShort(ended.distanceMeters ?? 0),
+        destination: ended.destination ?? '—',
+      });
+    } catch (error: any) {
+      Alert.alert(
+        'Could Not Stop Task',
+        error?.message ?? 'Something went wrong. Please try again.',
+      );
+    } finally {
+      setIsStopping(false);
+    }
   };
 
   /*
@@ -97,6 +139,11 @@ const ActiveTaskScreen: React.FC = () => {
     });
   };
 
+  if (!activeTask || !activeTask.startedAt) {
+    // Brief flash before the redirect effect above kicks in.
+    return <SafeAreaView style={styles.container} />;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
 
@@ -111,17 +158,17 @@ const ActiveTaskScreen: React.FC = () => {
         <View style={styles.employeeContainer}>
           <View>
             <Text style={styles.greeting}>
-              Hi, Ahmed
+              Hi, {user?.name ?? 'Office Boy'}
             </Text>
 
             <Text style={styles.designation}>
-              Office Boy
+              {user?.role ?? 'Office Boy'}
             </Text>
           </View>
 
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              A
+              {(user?.name ?? 'A').charAt(0).toUpperCase()}
             </Text>
           </View>
         </View>
@@ -134,7 +181,7 @@ const ActiveTaskScreen: React.FC = () => {
 
           <View style={styles.badgesContainer}>
             <StatusBadge
-              label="IN_PROGRESS"
+              label={activeTask.status}
               type="active"
             />
 
@@ -158,7 +205,7 @@ const ActiveTaskScreen: React.FC = () => {
           <View style={styles.detailsContainer}>
 
             <Text style={styles.taskTitle}>
-              Deposit cheque at HBL
+              {activeTask.title}
             </Text>
 
             <View style={styles.trackingContainer}>
@@ -181,14 +228,15 @@ const ActiveTaskScreen: React.FC = () => {
       <View style={styles.stopButtonContainer}>
 
         <TouchableOpacity
-          style={styles.stopButton}
+          style={[styles.stopButton, isStopping && styles.stopButtonDisabled]}
           activeOpacity={0.8}
-          onPress={handleStopTask}>
+          onPress={handleStopTask}
+          disabled={isStopping}>
 
           <View style={styles.stopIcon} />
 
           <Text style={styles.stopButtonText}>
-            STOP TASK
+            {isStopping ? 'STOPPING...' : 'STOP TASK'}
           </Text>
 
         </TouchableOpacity>
@@ -447,6 +495,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 5,
+  },
+
+  stopButtonDisabled: {
+    opacity: 0.6,
   },
 
   stopIcon: {

@@ -31,7 +31,7 @@ const STATUS_CONFIG: Record<TaskStatus, StatusConfig> = {
     stripeColor: '#EF6C00',
     badgeBg: '#ffedd5',
     badgeText: '#EF6C00',
-    label: 'Pending Sync',
+    label: 'Needs Submission',
   },
   cancelled: {
     stripeColor: '#D32F2F',
@@ -58,7 +58,7 @@ const HistoryTaskCard = ({
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{title}</Text>
             {status === 'pending_sync' && (
-              <Text style={styles.retryText}>Tap to retry later</Text>
+              <Text style={styles.retryText}>Settlement not submitted yet</Text>
             )}
           </View>
           <View style={[styles.badge, { backgroundColor: config.badgeBg }]}>

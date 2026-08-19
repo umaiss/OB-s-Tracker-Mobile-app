@@ -1,4 +1,10 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
+
+import { useTask } from '../context/TaskContext';
+import { useAuth } from '../context/AuthContext';
+import { getCurrentLocation } from '../location/locationTracker';
+import { getEmployees, getTaskStats, Employee, TaskStats } from '../api/tasksApi';
+
 import {
   ScrollView,
   View,
@@ -8,9 +14,10 @@ import {
   Image,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import KpiCard from '../components/KpiCard';
@@ -36,30 +43,82 @@ const scheduleIcon = require('../assets/icons/schedule.png');
 const micIcon = require('../assets/icons/mic.png');
 const infoIcon = require('../assets/icons/info.png');
 
-const EMPLOYEE_OPTIONS = [
-  'Ahmed Khan',
-  'Ali Hassan',
-  'Zubair Ahmed',
-  'Fatima Noor',
-];
-
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Main'
 >;
 
+function formatKpiDistance(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters)} m`;
+}
+
+function formatKpiDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 const HomeScreen: React.FC = () => {
+  const { createAndStartTask } = useTask();
+  const { user } = useAuth();
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
   const [taskText, setTaskText] = useState<string>('');
   const [isTopEmployee, setIsTopEmployee] = useState<boolean>(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(
-    null,
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState<boolean>(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isStartingTask, setIsStartingTask] = useState<boolean>(false);
+  const [stats, setStats] = useState<TaskStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
 
-  const handleStartTask = (): void => {
-    console.log('Start Task button pressed');
+  // Refetch every time this screen gains focus — not just on first mount —
+  // so the KPI row updates right after finishing a task and coming back
+  // from TaskCompleted, without needing a manual pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setStatsLoading(true);
+      getTaskStats()
+        .then(res => {
+          if (!cancelled) setStats(res);
+        })
+        .catch(err => {
+          console.warn('Failed to load task stats:', err.message);
+        })
+        .finally(() => {
+          if (!cancelled) setStatsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  // Fetch the real "Top 10" employee list once, on mount — this is the
+  // GET /employees endpoint, which only ever returns active employees.
+  useEffect(() => {
+    let cancelled = false;
+    setEmployeesLoading(true);
+    getEmployees()
+      .then(res => {
+        if (!cancelled) setEmployees(res.items);
+      })
+      .catch(err => {
+        console.warn('Failed to load employees:', err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setEmployeesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleStartTask = async (): Promise<void> => {
+    console.log('🔵 Start Task pressed — taskText:', taskText);
 
     if (!taskText.trim()) {
       Alert.alert(
@@ -69,7 +128,7 @@ const HomeScreen: React.FC = () => {
       return;
     }
 
-    if (isTopEmployee && !selectedEmployee) {
+    if (isTopEmployee && !selectedEmployeeId) {
       Alert.alert(
         'Employee Required',
         'Please select an employee for this task.',
@@ -79,22 +138,38 @@ const HomeScreen: React.FC = () => {
 
     setIsStartingTask(true);
 
-    setTimeout(() => {
+    try {
+      // Grab a fresh GPS fix right now — this is the location the task
+      // "starts" at, separate from the ongoing tracking that kicks in
+      // once createAndStartTask calls startTracking() internally.
+      console.log('🔵 Getting current location...');
+      const { latitude, longitude } = await getCurrentLocation();
+      console.log('🔵 Got location:', latitude, longitude);
+
+      console.log('🔵 Calling createAndStartTask...');
+      const task = await createAndStartTask({
+        title: taskText.trim(),
+        description: taskText.trim(),
+        employeeId: isTopEmployee && selectedEmployeeId ? selectedEmployeeId : undefined,
+        latitude,
+        longitude,
+      });
+      console.log('✅ Task created and started:', task.id, task.title);
+
+      setTaskText('');
+      setIsTopEmployee(false);
+      setSelectedEmployeeId(null);
+
+      navigation.navigate('ActiveTask');
+    } catch (error: any) {
+      console.log('❌ Start task failed:', error?.message);
+      Alert.alert(
+        'Could Not Start Task',
+        error?.message ?? 'Something went wrong. Please try again.',
+      );
+    } finally {
       setIsStartingTask(false);
-
-      try {
-        navigation.navigate('ActiveTask');
-
-        console.log('Navigation to ActiveTask successful');
-      } catch (error) {
-        console.error('Navigation error:', error);
-
-        Alert.alert(
-          'Navigation Error',
-          'Could not navigate to the active task screen.',
-        );
-      }
-    }, 500);
+    }
   };
 
   return (
@@ -132,11 +207,11 @@ const HomeScreen: React.FC = () => {
           {/* GREETING */}
           <View style={styles.greetingContainer}>
             <Text style={styles.greeting}>
-              Good Morning, Ahmed
+              Good Morning, {user?.name ?? 'Office Boy'}
             </Text>
 
             <Text style={styles.subGreeting}>
-              Office Boy | Maintenance Dept
+              {user?.role === 'OFFICE_BOY' ? 'Office Boy' : user?.role ?? ''}
             </Text>
           </View>
 
@@ -145,19 +220,19 @@ const HomeScreen: React.FC = () => {
             <KpiCard
               icon={taskAltIcon}
               label="Completed"
-              value="3"
+              value={statsLoading ? '…' : String(stats?.completedToday ?? 0)}
             />
 
             <KpiCard
               icon={walkIcon}
               label="Distance"
-              value="12.4 km"
+              value={statsLoading ? '…' : formatKpiDistance(stats?.totalDistanceMeters ?? 0)}
             />
 
             <KpiCard
               icon={scheduleIcon}
               label="Time"
-              value="4h 20m"
+              value={statsLoading ? '…' : formatKpiDuration(stats?.totalDurationSeconds ?? 0)}
             />
           </View>
 
@@ -221,27 +296,38 @@ const HomeScreen: React.FC = () => {
                   SELECT EMPLOYEE
                 </Text>
 
-                <View style={styles.optionsList}>
-                  {EMPLOYEE_OPTIONS.map(name => (
-                    <TouchableOpacity
-                      key={name}
-                      style={[
-                        styles.optionRow,
-                        selectedEmployee === name &&
-                          styles.optionRowSelected,
-                      ]}
-                      onPress={() =>
-                        setSelectedEmployee(name)
-                      }
-                      activeOpacity={0.7}>
+                {employeesLoading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : employees.length === 0 ? (
+                  <Text style={styles.emptyText}>
+                    No active employees found.
+                  </Text>
+                ) : (
+                  <View style={styles.optionsList}>
+                    {employees.map(employee => (
+                      <TouchableOpacity
+                        key={employee.id}
+                        style={[
+                          styles.optionRow,
+                          selectedEmployeeId === employee.id &&
+                            styles.optionRowSelected,
+                        ]}
+                        onPress={() =>
+                          setSelectedEmployeeId(employee.id)
+                        }
+                        activeOpacity={0.7}>
 
-                      <Text style={styles.optionText}>
-                        {name}
-                      </Text>
+                        <Text style={styles.optionText}>
+                          {employee.name}
+                        </Text>
+                        <Text style={styles.optionSubtext}>
+                          {employee.department}
+                        </Text>
 
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
               </View>
             )}
@@ -423,14 +509,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs || 4,
   },
 
+  emptyText: {
+    ...typography.bodySm,
+    color: colors.secondary || '#757575',
+  },
+
   optionsList: {
     gap: spacing.base || 12,
   },
 
   optionRow: {
-    height: verticalScale(48),
+    minHeight: verticalScale(48),
     justifyContent: 'center',
     paddingHorizontal: spacing.md || 16,
+    paddingVertical: spacing.sm || 8,
     backgroundColor:
       colors.surfaceContainerLowest || '#FFFFFF',
     borderWidth: 1,
@@ -447,6 +539,11 @@ const styles = StyleSheet.create({
   optionText: {
     ...typography.bodyLg,
     color: colors.onSurface || '#1A1A1A',
+  },
+
+  optionSubtext: {
+    ...typography.bodySm,
+    color: colors.secondary || '#757575',
   },
 });
 
