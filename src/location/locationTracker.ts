@@ -1,7 +1,7 @@
 import Geolocation from 'react-native-geolocation-service';
 import BackgroundFetch from 'react-native-background-fetch';
 import DeviceInfo from 'react-native-device-info';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from '../utils/uuid';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { LocationPoint } from '../api/tasksApi';
 
@@ -59,7 +59,6 @@ function computeIsMoving(lat: number, lng: number, timestamp: number): boolean {
   return distanceM / seconds >= MOVING_SPEED_THRESHOLD_MPS;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function buildPoint(position: any): Promise<LocationPoint> {
   const { latitude, longitude, accuracy } = position.coords;
   const timestamp: number = position.timestamp;
@@ -112,7 +111,7 @@ export async function startTracking(onPoint: (point: LocationPoint) => void): Pr
       startOnBoot: true,
       enableHeadless: true,
     },
-    taskId => {
+    (taskId: string) => {
       Geolocation.getCurrentPosition(
         position => {
           buildPoint(position).then(onPoint);
@@ -122,7 +121,7 @@ export async function startTracking(onPoint: (point: LocationPoint) => void): Pr
         { enableHighAccuracy: true },
       );
     },
-    error => console.warn('BackgroundFetch configure error:', error),
+    (taskId: string) => console.warn('BackgroundFetch timeout:', taskId),
   );
   await BackgroundFetch.start();
 }

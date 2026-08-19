@@ -14,15 +14,15 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {launchImageLibrary} from 'react-native-image-picker';
 
 import {useTask} from '../context/TaskContext';
-import {updateSettlement, submitTask} from '../api/tasksApi';
 
 import {RootStackParamList} from '../navigation/types';
 import {ApiError} from '../api/client';
 import {
-  getTask,
+  getTaskById,
   updateSettlement,
   submitTask,
   uploadReceipt,
+  Task,
 } from '../api/tasksApi';
 
 type TaskCompletedNavigationProp = NativeStackNavigationProp<
@@ -35,10 +35,7 @@ type TaskCompletedRouteProp = RouteProp<RootStackParamList, 'TaskCompleted'>;
 const TaskCompletedScreen: React.FC = () => {
   const navigation = useNavigation<TaskCompletedNavigationProp>();
   const route = useRoute<TaskCompletedRouteProp>();
-<<<<<<< Updated upstream
   const {clearActiveTask} = useTask();
-=======
->>>>>>> Stashed changes
 
   const {taskId, taskTitle, duration, distance} = route.params;
 
@@ -64,8 +61,8 @@ const TaskCompletedScreen: React.FC = () => {
    * the office boy already entered.
    */
   useEffect(() => {
-    getTask(taskId)
-      .then(task => {
+    getTaskById(taskId)
+      .then((task: Task) => {
         setAmountReceived(
           task.amountReceived != null ? String(task.amountReceived) : '',
         );
@@ -95,20 +92,6 @@ const TaskCompletedScreen: React.FC = () => {
   };
 
   /*
-<<<<<<< Updated upstream
-   * RECEIPT
-   *
-   * Real upload needs an image/file picker library (e.g.
-   * react-native-image-picker), which isn't installed yet — so this is
-   * intentionally left as a clear "not available" state rather than
-   * faking a successful upload. Ask if you want this wired up next.
-   */
-  const handleReceiptUpload = () => {
-    Alert.alert(
-      'Not Set Up Yet',
-      'Receipt upload needs an image picker library that isn\u2019t installed in the project yet. This button is a placeholder until that\u2019s added.',
-    );
-=======
    * RECEIPT UPLOAD
    */
   const handleReceiptUpload = async (): Promise<void> => {
@@ -137,11 +120,12 @@ const TaskCompletedScreen: React.FC = () => {
       const type = asset.type ?? 'image/jpeg';
       const extension = type.split('/')[1] ?? 'jpg';
 
-      const task = await uploadReceipt(taskId, {
-        uri: asset.uri,
-        name: asset.fileName ?? `receipt.${extension}`,
+      const task = await uploadReceipt(
+        taskId,
+        asset.uri,
+        asset.fileName ?? `receipt.${extension}`,
         type,
-      });
+      );
 
       setReceiptName(task.receipt?.originalName ?? asset.fileName ?? 'receipt');
       setReceiptUri(asset.uri ?? null);
@@ -155,20 +139,13 @@ const TaskCompletedScreen: React.FC = () => {
     } finally {
       setReceiptUploading(false);
     }
->>>>>>> Stashed changes
   };
 
   /*
    * SUBMIT TASK
    *
-<<<<<<< Updated upstream
-   * Real flow: PATCH the settlement (money + vendor), then POST /submit.
-   * A receipt is optional per the API doc, so its absence never blocks
-   * submission.
-=======
    * Settlement first (send exactly what is on screen), then submit.
    * Submit is final — a 409 means "already handed in", not an error.
->>>>>>> Stashed changes
    */
   const handleSubmit = () => {
     if (submitting) {
@@ -190,7 +167,6 @@ const TaskCompletedScreen: React.FC = () => {
 
             try {
               await updateSettlement(taskId, {
-<<<<<<< Updated upstream
                 amountReceived: received,
                 amountReturned: returned,
                 vendorDetails: vendorDetails.trim() || undefined,
@@ -200,41 +176,17 @@ const TaskCompletedScreen: React.FC = () => {
 
               clearActiveTask();
               goToHome();
-            } catch (error: any) {
-              Alert.alert(
-                'Could Not Submit',
-                error?.message ?? 'Something went wrong. Please try again.',
-              );
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ],
-      {
-        cancelable: true,
-      },
-    );
-  };
-=======
-                amountReceived: Number(amountReceived) || 0,
-                amountReturned: Number(amountReturned) || 0,
-                vendorDetails: vendorDetails.trim(),
-              });
-
-              await submitTask(taskId);
-
-              goToHome();
             } catch (error) {
               if (error instanceof ApiError && error.statusCode === 409) {
                 Alert.alert(
                   'Already Submitted',
                   'This task has already been handed in.',
                 );
+                clearActiveTask();
                 goToHome();
               } else {
                 Alert.alert(
-                  'Submit Failed',
+                  'Could Not Submit',
                   error instanceof Error
                     ? error.message
                     : 'Something went wrong. Please try again.',
@@ -251,14 +203,6 @@ const TaskCompletedScreen: React.FC = () => {
       },
     );
   };
-
-  /*
-   * CANCEL TASK
-   *
-   * Removed — cancellation now lives on the Active Task screen, before the
-   * task is completed.
-   */
->>>>>>> Stashed changes
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -807,10 +751,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.4,
   },
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 });
 
 export default TaskCompletedScreen;

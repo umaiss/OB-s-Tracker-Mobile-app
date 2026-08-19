@@ -8,10 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-<<<<<<< Updated upstream
-=======
   Modal,
->>>>>>> Stashed changes
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {moderateScale} from 'react-native-size-matters';
@@ -19,15 +16,12 @@ import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import Geolocation from 'react-native-geolocation-service';
 import DeviceInfo from 'react-native-device-info';
 
-import {useTask} from '../context/TaskContext';
 import {useAuth} from '../context/AuthContext';
-import {getCurrentLocation} from '../location/locationTracker';
 
 import StatusBadge from '../components/StatusBadge';
 import CircularTimer from '../components/CircularTimer';
 import {RootStackParamList} from '../navigation/types';
-import {useAuth} from '../context/AuthContext';
-import {streamLocations, endTask, cancelTask, StreamedPoint} from '../api/tasksApi';
+import {sendLocationBatch, endTask, cancelTask, LocationPoint} from '../api/tasksApi';
 import {uuidv4} from '../utils/uuid';
 import {requestLocationPermission, getCurrentPosition} from '../api/location';
 
@@ -35,100 +29,6 @@ const homeIcon = require('../assets/icons/home.png');
 const historyIcon = require('../assets/icons/history.png');
 const personIcon = require('../assets/icons/person.png');
 
-<<<<<<< Updated upstream
-function formatElapsed(startedAt: string): string {
-  const startMs = new Date(startedAt).getTime();
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-  const h = Math.floor(diffSeconds / 3600);
-  const m = Math.floor((diffSeconds % 3600) / 60);
-  const s = diffSeconds % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-// No fixed "expected duration" exists for an errand, so the ring cycles
-// once per hour as a live visual pulse rather than representing % complete
-// toward some unknown target. Adjust this if you'd rather it just fill once.
-function computeProgress(startedAt: string): number {
-  const startMs = new Date(startedAt).getTime();
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-  return ((diffSeconds % 3600) / 3600) * 100;
-}
-
-function formatDurationShort(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
-
-function formatDistanceShort(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
-  return `${Math.round(meters)} m`;
-}
-
-const ActiveTaskScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const {activeTask, endActiveTask} = useTask();
-  const {user} = useAuth();
-
-  const [elapsedTime, setElapsedTime] = useState('00:00:00');
-  const [progress, setProgress] = useState(0);
-  const [isStopping, setIsStopping] = useState(false);
-
-  // No active task in context — nothing to show here (e.g. app was
-  // reloaded mid-task, or this screen was reached without starting one).
-  useEffect(() => {
-    if (!activeTask || !activeTask.startedAt) {
-      navigation.navigate('Main', {screen: 'Home'});
-    }
-  }, [activeTask, navigation]);
-
-  /*
-   * TIMER — derived from the real startedAt timestamp, not a local counter.
-   * This means the elapsed time stays correct even if you navigate away
-   * and back, since it's recalculated from the actual start time each tick
-   * rather than incremented from wherever it last was.
-   */
-  useEffect(() => {
-    if (!activeTask?.startedAt) return;
-
-    setElapsedTime(formatElapsed(activeTask.startedAt));
-    setProgress(computeProgress(activeTask.startedAt));
-
-    const timer = setInterval(() => {
-      setElapsedTime(formatElapsed(activeTask.startedAt as string));
-      setProgress(computeProgress(activeTask.startedAt as string));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [activeTask?.startedAt]);
-
-  const handleStopTask = async () => {
-    if (!activeTask) return;
-    setIsStopping(true);
-
-    try {
-      const {latitude, longitude} = await getCurrentLocation();
-      const ended = await endActiveTask(latitude, longitude);
-
-      navigation.replace('TaskCompleted', {
-        taskId: ended.id,
-        employeeName: user?.name ?? 'Office Boy',
-        taskTitle: ended.title,
-        duration: formatDurationShort(ended.durationSeconds ?? 0),
-        distance: formatDistanceShort(ended.distanceMeters ?? 0),
-        destination: ended.destination ?? '—',
-      });
-    } catch (error: any) {
-      Alert.alert(
-        'Could Not Stop Task',
-        error?.message ?? 'Something went wrong. Please try again.',
-      );
-    } finally {
-      setIsStopping(false);
-=======
 type ActiveTaskRouteProp = RouteProp<RootStackParamList, 'ActiveTask'>;
 
 const FLUSH_INTERVAL_MS = 15000;
@@ -161,7 +61,7 @@ const ActiveTaskScreen: React.FC = () => {
   const [cancelling, setCancelling] = useState(false);
 
   const startTimeRef = useRef<number>(Date.now());
-  const bufferRef = useRef<StreamedPoint[]>([]);
+  const bufferRef = useRef<LocationPoint[]>([]);
   const watchIdRef = useRef<number | null>(null);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const batteryRef = useRef<number>(0);
@@ -194,7 +94,7 @@ const ActiveTaskScreen: React.FC = () => {
     bufferRef.current = [];
 
     try {
-      await streamLocations(taskId, batch);
+      await sendLocationBatch(taskId, batch);
     } catch (error) {
       console.error('Location batch failed, will retry:', error);
       bufferRef.current = [...batch, ...bufferRef.current];
@@ -327,11 +227,7 @@ const ActiveTaskScreen: React.FC = () => {
 
       const current = lastLocationRef.current;
 
-      const task = await endTask(taskId, {
-        latitude: current?.latitude ?? 0,
-        longitude: current?.longitude ?? 0,
-        recordedAt: new Date().toISOString(),
-      });
+      const task = await endTask(taskId, current?.latitude ?? 0, current?.longitude ?? 0);
 
       const durationSeconds =
         task.durationSeconds ??
@@ -384,9 +280,7 @@ const ActiveTaskScreen: React.FC = () => {
     setCancelling(true);
 
     try {
-      await cancelTask(taskId, {
-        cancellationReason: cancelReason.trim(),
-      });
+      await cancelTask(taskId, cancelReason.trim());
 
       setCancelModalVisible(false);
       goToHome();
@@ -397,7 +291,6 @@ const ActiveTaskScreen: React.FC = () => {
       );
     } finally {
       setCancelling(false);
->>>>>>> Stashed changes
     }
   };
 
@@ -422,11 +315,6 @@ const ActiveTaskScreen: React.FC = () => {
     });
   };
 
-  if (!activeTask || !activeTask.startedAt) {
-    // Brief flash before the redirect effect above kicks in.
-    return <SafeAreaView style={styles.container} />;
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
 
@@ -440,11 +328,7 @@ const ActiveTaskScreen: React.FC = () => {
         <View style={styles.employeeContainer}>
           <View>
             <Text style={styles.greeting}>
-<<<<<<< Updated upstream
               Hi, {user?.name ?? 'Office Boy'}
-=======
-              Hi, {user?.name?.split(' ')[0] ?? 'Employee'}
->>>>>>> Stashed changes
             </Text>
 
             <Text style={styles.designation}>
@@ -454,11 +338,7 @@ const ActiveTaskScreen: React.FC = () => {
 
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-<<<<<<< Updated upstream
               {(user?.name ?? 'A').charAt(0).toUpperCase()}
-=======
-              {(user?.name ?? 'E').charAt(0).toUpperCase()}
->>>>>>> Stashed changes
             </Text>
           </View>
         </View>
@@ -471,7 +351,7 @@ const ActiveTaskScreen: React.FC = () => {
 
           <View style={styles.badgesContainer}>
             <StatusBadge
-              label={activeTask.status}
+              label="Active"
               type="active"
             />
 
@@ -495,11 +375,7 @@ const ActiveTaskScreen: React.FC = () => {
           <View style={styles.detailsContainer}>
 
             <Text style={styles.taskTitle}>
-<<<<<<< Updated upstream
-              {activeTask.title}
-=======
               {taskTitle}
->>>>>>> Stashed changes
             </Text>
 
             {destination ? (
@@ -534,24 +410,14 @@ const ActiveTaskScreen: React.FC = () => {
         ]}>
 
         <TouchableOpacity
-<<<<<<< Updated upstream
-          style={[styles.stopButton, isStopping && styles.stopButtonDisabled]}
-          activeOpacity={0.8}
-          onPress={handleStopTask}
-          disabled={isStopping}>
-=======
           style={[styles.stopButton, (stopping || cancelling) && styles.stopButtonDisabled]}
           activeOpacity={0.8}
           onPress={handleStopTask}
           disabled={stopping || cancelling}>
->>>>>>> Stashed changes
 
           <View style={styles.stopIcon} />
 
           <Text style={styles.stopButtonText}>
-<<<<<<< Updated upstream
-            {isStopping ? 'STOPPING...' : 'STOP TASK'}
-=======
             {stopping ? 'STOPPING...' : 'STOP TASK'}
           </Text>
 
@@ -568,7 +434,6 @@ const ActiveTaskScreen: React.FC = () => {
 
           <Text style={styles.cancelButtonText}>
             CANCEL TASK
->>>>>>> Stashed changes
           </Text>
 
         </TouchableOpacity>

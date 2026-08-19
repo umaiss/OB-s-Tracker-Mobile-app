@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 import React, { useState, useCallback } from 'react';
-=======
-import React from 'react';
->>>>>>> Stashed changes
 import { ScrollView, View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,14 +20,11 @@ const languageIcon = require('../assets/icons/language.png');
 const infoIcon = require('../assets/icons/info.png');
 const logoutIcon = require('../assets/icons/logout.png');
 
-// Same formatting convention as HomeScreen's KPI row, kept local here since
-// it's just these two screens that need it.
 function formatKpiDistance(meters: number): string {
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
   return `${Math.round(meters)} m`;
 }
 
-// Same duration formatting convention as HomeScreen's KPI row.
 function formatKpiDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -41,13 +34,10 @@ function formatKpiDuration(totalSeconds: number): string {
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
-<<<<<<< Updated upstream
-  const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
+  const [_voiceInputEnabled, _setVoiceInputEnabled] = useState(true);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(false);
 
-  // Refetch on every focus (not just mount) so numbers stay current after
-  // finishing/submitting a task elsewhere in the app — mirrors Home's pattern.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -67,8 +57,6 @@ const ProfileScreen = () => {
       };
     }, []),
   );
-=======
->>>>>>> Stashed changes
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [

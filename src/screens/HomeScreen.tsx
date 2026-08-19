@@ -1,14 +1,7 @@
-<<<<<<< Updated upstream
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 
-import { useTask } from '../context/TaskContext';
-import { useAuth } from '../context/AuthContext';
-import { getCurrentLocation } from '../location/locationTracker';
-import { getEmployees, getTaskStats, Employee, TaskStats } from '../api/tasksApi';
+import {useAuth} from '../context/AuthContext';
 
-=======
-import React, {useEffect, useState} from 'react';
->>>>>>> Stashed changes
 import {
   ScrollView,
   View,
@@ -38,8 +31,14 @@ import {
 } from 'react-native-size-matters';
 
 import {RootStackParamList} from '../navigation/types';
-import {useAuth} from '../context/AuthContext';
-import {createTask, startTask, getTopEmployees, TopEmployee} from '../api/tasksApi';
+import {
+  createTask,
+  startTask,
+  getEmployees,
+  getTaskStats,
+  Employee,
+  TaskStats,
+} from '../api/tasksApi';
 import {uuidv4} from '../utils/uuid';
 import {requestLocationPermission, getCurrentPosition} from '../api/location';
 
@@ -69,31 +68,18 @@ function formatKpiDuration(totalSeconds: number): string {
 }
 
 const HomeScreen: React.FC = () => {
-  const { createAndStartTask } = useTask();
-  const { user } = useAuth();
-  const navigation = useNavigation<HomeScreenNavigationProp>();
   const {user} = useAuth();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
 
   const [taskText, setTaskText] = useState<string>('');
   const [isTopEmployee, setIsTopEmployee] = useState<boolean>(false);
-<<<<<<< Updated upstream
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState<boolean>(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-=======
-  const [employees, setEmployees] = useState<TopEmployee[]>([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
-    null,
-  );
->>>>>>> Stashed changes
   const [isStartingTask, setIsStartingTask] = useState<boolean>(false);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(false);
 
-<<<<<<< Updated upstream
-  // Refetch every time this screen gains focus — not just on first mount —
-  // so the KPI row updates right after finishing a task and coming back
-  // from TaskCompleted, without needing a manual pull-to-refresh.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -114,8 +100,6 @@ const HomeScreen: React.FC = () => {
     }, []),
   );
 
-  // Fetch the real "Top 10" employee list once, on mount — this is the
-  // GET /employees endpoint, which only ever returns active employees.
   useEffect(() => {
     let cancelled = false;
     setEmployeesLoading(true);
@@ -135,16 +119,6 @@ const HomeScreen: React.FC = () => {
   }, []);
 
   const handleStartTask = async (): Promise<void> => {
-    console.log('🔵 Start Task pressed — taskText:', taskText);
-=======
-  useEffect(() => {
-    getTopEmployees()
-      .then(list => setEmployees(Array.isArray(list) ? list : []))
-      .catch(() => setEmployees([]));
-  }, []);
->>>>>>> Stashed changes
-
-  const handleStartTask = async (): Promise<void> => {
     if (!taskText.trim()) {
       Alert.alert(
         'Task Required',
@@ -153,17 +127,14 @@ const HomeScreen: React.FC = () => {
       return;
     }
 
-<<<<<<< Updated upstream
-=======
     if (isTopEmployee && employees.length === 0) {
       Alert.alert(
         'Employee List Unavailable',
-        'Could not load the Top 10 employee list. Please try again.',
+        'Could not load the employee list. Please try again.',
       );
       return;
     }
 
->>>>>>> Stashed changes
     if (isTopEmployee && !selectedEmployeeId) {
       Alert.alert(
         'Employee Required',
@@ -175,35 +146,6 @@ const HomeScreen: React.FC = () => {
     setIsStartingTask(true);
 
     try {
-<<<<<<< Updated upstream
-      // Grab a fresh GPS fix right now — this is the location the task
-      // "starts" at, separate from the ongoing tracking that kicks in
-      // once createAndStartTask calls startTracking() internally.
-      console.log('🔵 Getting current location...');
-      const { latitude, longitude } = await getCurrentLocation();
-      console.log('🔵 Got location:', latitude, longitude);
-
-      console.log('🔵 Calling createAndStartTask...');
-      const task = await createAndStartTask({
-        title: taskText.trim(),
-        description: taskText.trim(),
-        employeeId: isTopEmployee && selectedEmployeeId ? selectedEmployeeId : undefined,
-        latitude,
-        longitude,
-      });
-      console.log('✅ Task created and started:', task.id, task.title);
-
-      setTaskText('');
-      setIsTopEmployee(false);
-      setSelectedEmployeeId(null);
-
-      navigation.navigate('ActiveTask');
-    } catch (error: any) {
-      console.log('❌ Start task failed:', error?.message);
-      Alert.alert(
-        'Could Not Start Task',
-        error?.message ?? 'Something went wrong. Please try again.',
-=======
       const hasPermission = await requestLocationPermission();
 
       if (!hasPermission) {
@@ -216,7 +158,6 @@ const HomeScreen: React.FC = () => {
 
       const position = await getCurrentPosition();
 
-      // Generate the idempotency key BEFORE any network call, reuse it on retries.
       const clientTaskId = uuidv4();
 
       const task = await createTask({
@@ -226,9 +167,12 @@ const HomeScreen: React.FC = () => {
         employeeId: isTopEmployee ? (selectedEmployeeId ?? undefined) : undefined,
       });
 
-      // /start only accepts latitude, longitude, recordedAt — no extra fields.
-      const {latitude, longitude, recordedAt} = position;
-      await startTask(task.id, {latitude, longitude, recordedAt});
+      const {latitude, longitude} = position;
+      await startTask(task.id, latitude, longitude);
+
+      setTaskText('');
+      setIsTopEmployee(false);
+      setSelectedEmployeeId(null);
 
       navigation.navigate('ActiveTask', {
         taskId: task.id,
@@ -241,7 +185,6 @@ const HomeScreen: React.FC = () => {
         error instanceof Error
           ? error.message
           : 'Something went wrong. Please try again.',
->>>>>>> Stashed changes
       );
     } finally {
       setIsStartingTask(false);
@@ -283,19 +226,11 @@ const HomeScreen: React.FC = () => {
           {/* GREETING */}
           <View style={styles.greetingContainer}>
             <Text style={styles.greeting}>
-<<<<<<< Updated upstream
               Good Morning, {user?.name ?? 'Office Boy'}
             </Text>
 
             <Text style={styles.subGreeting}>
               {user?.role === 'OFFICE_BOY' ? 'Office Boy' : user?.role ?? ''}
-=======
-              Good Morning, {user?.name ?? 'Employee'}
-            </Text>
-
-            <Text style={styles.subGreeting}>
-              {user?.role === 'OFFICE_BOY' ? 'Office Boy' : user?.role} | Maintenance Dept
->>>>>>> Stashed changes
             </Text>
           </View>
 
@@ -310,13 +245,13 @@ const HomeScreen: React.FC = () => {
             <KpiCard
               icon={walkIcon}
               label="Distance"
-              value={statsLoading ? '…' : formatKpiDistance(stats?.totalDistanceMeters ?? 0)}
+              value={statsLoading ? '…' : formatKpiDistance(stats?.todayDistanceMeters ?? 0)}
             />
 
             <KpiCard
               icon={scheduleIcon}
               label="Time"
-              value={statsLoading ? '…' : formatKpiDuration(stats?.totalDurationSeconds ?? 0)}
+              value={statsLoading ? '…' : formatKpiDuration(stats?.todayDurationSeconds ?? 0)}
             />
           </View>
 
@@ -380,7 +315,6 @@ const HomeScreen: React.FC = () => {
                   SELECT EMPLOYEE
                 </Text>
 
-<<<<<<< Updated upstream
                 {employeesLoading ? (
                   <ActivityIndicator color={colors.primary} />
                 ) : employees.length === 0 ? (
@@ -408,26 +342,6 @@ const HomeScreen: React.FC = () => {
                         <Text style={styles.optionSubtext}>
                           {employee.department}
                         </Text>
-=======
-                <View style={styles.optionsList}>
-                  {(employees ?? []).map(employee => (
-                    <TouchableOpacity
-                      key={employee.id}
-                      style={[
-                        styles.optionRow,
-                        selectedEmployeeId === employee.id &&
-                          styles.optionRowSelected,
-                      ]}
-                      onPress={() =>
-                        setSelectedEmployeeId(employee.id)
-                      }
-                      activeOpacity={0.7}>
-
-                      <Text style={styles.optionText}>
-                        {employee.name}
-                      </Text>
->>>>>>> Stashed changes
-
                       </TouchableOpacity>
                     ))}
                   </View>

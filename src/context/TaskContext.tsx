@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useState, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from '../utils/uuid';
 import * as tasksApi from '../api/tasksApi';
 import { Task, LocationPoint } from '../api/tasksApi';
 import { startTracking, stopTracking } from '../location/locationTracker';

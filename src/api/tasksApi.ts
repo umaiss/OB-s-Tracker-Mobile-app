@@ -37,6 +37,12 @@ export type Task = {
   createdAt: string;
 };
 
+export type GeoPoint = {
+  latitude: number;
+  longitude: number;
+  recordedAt: string;
+};
+
 export type LocationPoint = {
   clientId: string;
   latitude: number;
@@ -59,6 +65,8 @@ export type TaskStats = {
   completedToday: number;
   pendingSubmission: number;
   totalDistanceMeters: number;
+  todayDistanceMeters : number;
+   todayDurationSeconds: number;
   totalDurationSeconds: number;
   totalAmountReceived: number;
   totalAmountReturned: number;

@@ -1,3 +1,5 @@
+export { uuidv4 as v4 };
+
 export function uuidv4(): string {
   const bytes: number[] = [];
   for (let i = 0; i < 16; i += 1) {
