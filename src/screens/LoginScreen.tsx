@@ -33,7 +33,7 @@ const LoginScreen = () => {
       setError('');
       try {
         await login(email, password);
-      } catch (err) {
+      } catch {
         setError('Invalid Email or password.');
       } finally {
         setLoading(false);

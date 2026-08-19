@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import React, {useState, useEffect, useCallback} from 'react';
 
 import { useTask } from '../context/TaskContext';
@@ -5,6 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { getCurrentLocation } from '../location/locationTracker';
 import { getEmployees, getTaskStats, Employee, TaskStats } from '../api/tasksApi';
 
+=======
+import React, {useEffect, useState} from 'react';
+>>>>>>> Stashed changes
 import {
   ScrollView,
   View,
@@ -34,6 +38,10 @@ import {
 } from 'react-native-size-matters';
 
 import {RootStackParamList} from '../navigation/types';
+import {useAuth} from '../context/AuthContext';
+import {createTask, startTask, getTopEmployees, TopEmployee} from '../api/tasksApi';
+import {uuidv4} from '../utils/uuid';
+import {requestLocationPermission, getCurrentPosition} from '../api/location';
 
 const dplLogo = require('../assets/images/dpl-logo.png');
 const avatarIcon = require('../assets/icons/avatar-placeholder.png');
@@ -64,16 +72,25 @@ const HomeScreen: React.FC = () => {
   const { createAndStartTask } = useTask();
   const { user } = useAuth();
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const {user} = useAuth();
 
   const [taskText, setTaskText] = useState<string>('');
   const [isTopEmployee, setIsTopEmployee] = useState<boolean>(false);
+<<<<<<< Updated upstream
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState<boolean>(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+=======
+  const [employees, setEmployees] = useState<TopEmployee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
+    null,
+  );
+>>>>>>> Stashed changes
   const [isStartingTask, setIsStartingTask] = useState<boolean>(false);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(false);
 
+<<<<<<< Updated upstream
   // Refetch every time this screen gains focus — not just on first mount —
   // so the KPI row updates right after finishing a task and coming back
   // from TaskCompleted, without needing a manual pull-to-refresh.
@@ -119,7 +136,15 @@ const HomeScreen: React.FC = () => {
 
   const handleStartTask = async (): Promise<void> => {
     console.log('🔵 Start Task pressed — taskText:', taskText);
+=======
+  useEffect(() => {
+    getTopEmployees()
+      .then(list => setEmployees(Array.isArray(list) ? list : []))
+      .catch(() => setEmployees([]));
+  }, []);
+>>>>>>> Stashed changes
 
+  const handleStartTask = async (): Promise<void> => {
     if (!taskText.trim()) {
       Alert.alert(
         'Task Required',
@@ -128,6 +153,17 @@ const HomeScreen: React.FC = () => {
       return;
     }
 
+<<<<<<< Updated upstream
+=======
+    if (isTopEmployee && employees.length === 0) {
+      Alert.alert(
+        'Employee List Unavailable',
+        'Could not load the Top 10 employee list. Please try again.',
+      );
+      return;
+    }
+
+>>>>>>> Stashed changes
     if (isTopEmployee && !selectedEmployeeId) {
       Alert.alert(
         'Employee Required',
@@ -139,6 +175,7 @@ const HomeScreen: React.FC = () => {
     setIsStartingTask(true);
 
     try {
+<<<<<<< Updated upstream
       // Grab a fresh GPS fix right now — this is the location the task
       // "starts" at, separate from the ongoing tracking that kicks in
       // once createAndStartTask calls startTracking() internally.
@@ -166,6 +203,45 @@ const HomeScreen: React.FC = () => {
       Alert.alert(
         'Could Not Start Task',
         error?.message ?? 'Something went wrong. Please try again.',
+=======
+      const hasPermission = await requestLocationPermission();
+
+      if (!hasPermission) {
+        Alert.alert(
+          'Location Required',
+          'Location access is needed to track this task.',
+        );
+        return;
+      }
+
+      const position = await getCurrentPosition();
+
+      // Generate the idempotency key BEFORE any network call, reuse it on retries.
+      const clientTaskId = uuidv4();
+
+      const task = await createTask({
+        clientTaskId,
+        title: taskText.trim(),
+        description: taskText.trim(),
+        employeeId: isTopEmployee ? (selectedEmployeeId ?? undefined) : undefined,
+      });
+
+      // /start only accepts latitude, longitude, recordedAt — no extra fields.
+      const {latitude, longitude, recordedAt} = position;
+      await startTask(task.id, {latitude, longitude, recordedAt});
+
+      navigation.navigate('ActiveTask', {
+        taskId: task.id,
+        taskTitle: task.title,
+      });
+    } catch (error) {
+      console.error('Start task error:', error);
+      Alert.alert(
+        'Could Not Start Task',
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.',
+>>>>>>> Stashed changes
       );
     } finally {
       setIsStartingTask(false);
@@ -207,11 +283,19 @@ const HomeScreen: React.FC = () => {
           {/* GREETING */}
           <View style={styles.greetingContainer}>
             <Text style={styles.greeting}>
+<<<<<<< Updated upstream
               Good Morning, {user?.name ?? 'Office Boy'}
             </Text>
 
             <Text style={styles.subGreeting}>
               {user?.role === 'OFFICE_BOY' ? 'Office Boy' : user?.role ?? ''}
+=======
+              Good Morning, {user?.name ?? 'Employee'}
+            </Text>
+
+            <Text style={styles.subGreeting}>
+              {user?.role === 'OFFICE_BOY' ? 'Office Boy' : user?.role} | Maintenance Dept
+>>>>>>> Stashed changes
             </Text>
           </View>
 
@@ -296,6 +380,7 @@ const HomeScreen: React.FC = () => {
                   SELECT EMPLOYEE
                 </Text>
 
+<<<<<<< Updated upstream
                 {employeesLoading ? (
                   <ActivityIndicator color={colors.primary} />
                 ) : employees.length === 0 ? (
@@ -323,6 +408,25 @@ const HomeScreen: React.FC = () => {
                         <Text style={styles.optionSubtext}>
                           {employee.department}
                         </Text>
+=======
+                <View style={styles.optionsList}>
+                  {(employees ?? []).map(employee => (
+                    <TouchableOpacity
+                      key={employee.id}
+                      style={[
+                        styles.optionRow,
+                        selectedEmployeeId === employee.id &&
+                          styles.optionRowSelected,
+                      ]}
+                      onPress={() =>
+                        setSelectedEmployeeId(employee.id)
+                      }
+                      activeOpacity={0.7}>
+
+                      <Text style={styles.optionText}>
+                        {employee.name}
+                      </Text>
+>>>>>>> Stashed changes
 
                       </TouchableOpacity>
                     ))}

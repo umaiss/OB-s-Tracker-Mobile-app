@@ -1,6 +1,6 @@
 import { getTokens, saveTokens, clearTokens } from '../auth/tokenStorage';
 
-const BASE_URL = 'http://13.60.233.201/api/v1';
+export const BASE_URL = 'http://13.60.233.201/api/v1';
 
 // Point 7: something else (AuthContext) sets this callback once, at app startup.
 // The client calls it when refresh genuinely fails — it doesn't navigate itself.
@@ -50,7 +50,7 @@ async function refreshAccessToken(): Promise<string | null> {
       });
 
       return json.data.accessToken as string;
-    } catch (error) {
+    } catch {
       await clearTokens();
       onSessionExpired?.();
       return null;

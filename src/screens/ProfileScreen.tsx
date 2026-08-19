@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import React, { useState, useCallback } from 'react';
+=======
+import React from 'react';
+>>>>>>> Stashed changes
 import { ScrollView, View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,8 +21,6 @@ const taskIcon = require('../assets/icons/task.png');
 const walkIcon = require('../assets/icons/walk.png');
 const timerIcon = require('../assets/icons/timer.png');
 const languageIcon = require('../assets/icons/language.png');
-const voiceIcon = require('../assets/icons/voice.png');
-const locationIcon = require('../assets/icons/person.png'); // placeholder if location.png wasn't downloaded
 const infoIcon = require('../assets/icons/info.png');
 const logoutIcon = require('../assets/icons/logout.png');
 
@@ -39,6 +41,7 @@ function formatKpiDuration(totalSeconds: number): string {
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
+<<<<<<< Updated upstream
   const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(false);
@@ -64,6 +67,8 @@ const ProfileScreen = () => {
       };
     }, []),
   );
+=======
+>>>>>>> Stashed changes
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [

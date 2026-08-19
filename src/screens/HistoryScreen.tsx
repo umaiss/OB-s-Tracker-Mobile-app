@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     width: moderateScale(64),
     height: moderateScale(64),
     borderRadius: radius.full,
-    backgroundColor: colors.surfaceContainerHigh ?? colors.surfaceContainerLow,
+    backgroundColor: colors.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

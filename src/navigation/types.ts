@@ -1,7 +1,11 @@
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
-  ActiveTask: undefined;
+  ActiveTask: {
+    taskId: string;
+    taskTitle: string;
+    destination?: string;
+  };
   TaskCompleted: {
     taskId: string;
     employeeName: string;

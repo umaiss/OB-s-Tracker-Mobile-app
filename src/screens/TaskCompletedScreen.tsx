@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,24 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {launchImageLibrary} from 'react-native-image-picker';
 
 import {useTask} from '../context/TaskContext';
 import {updateSettlement, submitTask} from '../api/tasksApi';
 
 import {RootStackParamList} from '../navigation/types';
+import {ApiError} from '../api/client';
+import {
+  getTask,
+  updateSettlement,
+  submitTask,
+  uploadReceipt,
+} from '../api/tasksApi';
 
 type TaskCompletedNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -26,7 +35,10 @@ type TaskCompletedRouteProp = RouteProp<RootStackParamList, 'TaskCompleted'>;
 const TaskCompletedScreen: React.FC = () => {
   const navigation = useNavigation<TaskCompletedNavigationProp>();
   const route = useRoute<TaskCompletedRouteProp>();
+<<<<<<< Updated upstream
   const {clearActiveTask} = useTask();
+=======
+>>>>>>> Stashed changes
 
   const {taskId, taskTitle, duration, distance} = route.params;
 
@@ -34,7 +46,9 @@ const TaskCompletedScreen: React.FC = () => {
   const [amountReturned, setAmountReturned] = useState('');
   const [vendorDetails, setVendorDetails] = useState('');
   const [receiptName, setReceiptName] = useState('');
+  const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [receiptUploading, setReceiptUploading] = useState(false);
 
   const received = Number(amountReceived) || 0;
   const returned = Number(amountReturned) || 0;
@@ -42,10 +56,32 @@ const TaskCompletedScreen: React.FC = () => {
   const netAmount = Math.max(received - returned, 0);
 
   /*
-   * Go to Home screen.
+   * PREFILL
    *
-   * Main is the bottom-tab navigator, so navigating to Main
-   * takes the user back to the Home tab.
+   * The settlement PATCH is the whole settlement — an omitted amount is written
+   * as 0. So load the current values before showing the form, and only send
+   * what is on screen. Otherwise an auto-saving empty form would erase amounts
+   * the office boy already entered.
+   */
+  useEffect(() => {
+    getTask(taskId)
+      .then(task => {
+        setAmountReceived(
+          task.amountReceived != null ? String(task.amountReceived) : '',
+        );
+        setAmountReturned(
+          task.amountReturned != null ? String(task.amountReturned) : '',
+        );
+        setVendorDetails(task.vendorDetails ?? '');
+        setReceiptName(task.receipt?.originalName ?? '');
+      })
+      .catch(() => {
+        // Leave the form empty; the user can type the values.
+      });
+  }, [taskId]);
+
+  /*
+   * Go to Home screen.
    */
   const goToHome = () => {
     navigation.reset({
@@ -59,6 +95,7 @@ const TaskCompletedScreen: React.FC = () => {
   };
 
   /*
+<<<<<<< Updated upstream
    * RECEIPT
    *
    * Real upload needs an image/file picker library (e.g.
@@ -71,14 +108,67 @@ const TaskCompletedScreen: React.FC = () => {
       'Not Set Up Yet',
       'Receipt upload needs an image picker library that isn\u2019t installed in the project yet. This button is a placeholder until that\u2019s added.',
     );
+=======
+   * RECEIPT UPLOAD
+   */
+  const handleReceiptUpload = async (): Promise<void> => {
+    if (receiptUploading) {
+      return;
+    }
+
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+    });
+
+    if (result.didCancel || !result.assets?.length) {
+      return;
+    }
+
+    const asset = result.assets[0];
+
+    if (!asset.uri) {
+      return;
+    }
+
+    setReceiptUploading(true);
+
+    try {
+      const type = asset.type ?? 'image/jpeg';
+      const extension = type.split('/')[1] ?? 'jpg';
+
+      const task = await uploadReceipt(taskId, {
+        uri: asset.uri,
+        name: asset.fileName ?? `receipt.${extension}`,
+        type,
+      });
+
+      setReceiptName(task.receipt?.originalName ?? asset.fileName ?? 'receipt');
+      setReceiptUri(asset.uri ?? null);
+    } catch (error) {
+      Alert.alert(
+        'Upload Failed',
+        error instanceof Error
+          ? error.message
+          : 'Could not upload the receipt.',
+      );
+    } finally {
+      setReceiptUploading(false);
+    }
+>>>>>>> Stashed changes
   };
 
   /*
    * SUBMIT TASK
    *
+<<<<<<< Updated upstream
    * Real flow: PATCH the settlement (money + vendor), then POST /submit.
    * A receipt is optional per the API doc, so its absence never blocks
    * submission.
+=======
+   * Settlement first (send exactly what is on screen), then submit.
+   * Submit is final — a 409 means "already handed in", not an error.
+>>>>>>> Stashed changes
    */
   const handleSubmit = () => {
     if (submitting) {
@@ -100,6 +190,7 @@ const TaskCompletedScreen: React.FC = () => {
 
             try {
               await updateSettlement(taskId, {
+<<<<<<< Updated upstream
                 amountReceived: received,
                 amountReturned: returned,
                 vendorDetails: vendorDetails.trim() || undefined,
@@ -125,9 +216,52 @@ const TaskCompletedScreen: React.FC = () => {
       },
     );
   };
+=======
+                amountReceived: Number(amountReceived) || 0,
+                amountReturned: Number(amountReturned) || 0,
+                vendorDetails: vendorDetails.trim(),
+              });
+
+              await submitTask(taskId);
+
+              goToHome();
+            } catch (error) {
+              if (error instanceof ApiError && error.statusCode === 409) {
+                Alert.alert(
+                  'Already Submitted',
+                  'This task has already been handed in.',
+                );
+                goToHome();
+              } else {
+                Alert.alert(
+                  'Submit Failed',
+                  error instanceof Error
+                    ? error.message
+                    : 'Something went wrong. Please try again.',
+                );
+              }
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ],
+      {
+        cancelable: true,
+      },
+    );
+  };
+
+  /*
+   * CANCEL TASK
+   *
+   * Removed — cancellation now lives on the Active Task screen, before the
+   * task is completed.
+   */
+>>>>>>> Stashed changes
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -156,7 +290,7 @@ const TaskCompletedScreen: React.FC = () => {
             </Text>
 
             <Text style={styles.completedSubtitle}>
-              Please enter the task details
+              {taskTitle}
             </Text>
           </View>
         </View>
@@ -283,6 +417,14 @@ const TaskCompletedScreen: React.FC = () => {
                 JPEG, PNG, WebP or PDF • Max 5 MB
               </Text>
 
+              {receiptUri && (
+                <Image
+                  source={{uri: receiptUri}}
+                  style={styles.receiptThumb}
+                  resizeMode="cover"
+                />
+              )}
+
               {receiptName !== '' && (
                 <Text style={styles.fileName}>
                   ✓ {receiptName}
@@ -291,15 +433,20 @@ const TaskCompletedScreen: React.FC = () => {
             </View>
 
             <TouchableOpacity
-              style={styles.uploadButton}
+              style={[styles.uploadButton, receiptUploading && styles.uploadButtonDisabled]}
               activeOpacity={0.8}
-              onPress={handleReceiptUpload}>
+              onPress={handleReceiptUpload}
+              disabled={receiptUploading}>
               <Text style={styles.uploadIcon}>
                 ↑
               </Text>
 
               <Text style={styles.uploadText}>
-                {receiptName ? 'CHANGE' : 'UPLOAD'}
+                {receiptUploading
+                  ? 'UPLOADING'
+                  : receiptName
+                  ? 'CHANGE'
+                  : 'UPLOAD'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -573,6 +720,7 @@ const styles = StyleSheet.create({
 
   receiptInfo: {
     flex: 1,
+    paddingRight: 10,
   },
 
   receiptDescription: {
@@ -588,6 +736,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  receiptThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5DCDC',
+    marginTop: 6,
+  },
+
   uploadButton: {
     width: 90,
     height: 40,
@@ -598,6 +755,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+  },
+
+  uploadButtonDisabled: {
+    opacity: 0.6,
   },
 
   uploadIcon: {
@@ -646,7 +807,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.4,
   },
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 });
 
 export default TaskCompletedScreen;
